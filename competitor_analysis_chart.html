@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>竞品调研矩阵</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.85); /* 增加不透明度，更稳重 */
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --glass-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05); /* 更柔和的阴影 */
+            --active-color: #0066CC; /* 深蓝色，更商务 */
+            --text-primary: #1d1d1f;
+            --text-secondary: #6e6e73;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            margin: 0;
+            min-height: 100vh; /* 允许滚动 */
+            /* 商务沉稳背景：极简灰调 */
+            background-color: #f5f5f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 玻璃拟态容器 */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px; /* 稍微减小圆角 */
+            box-shadow: var(--glass-shadow);
+        }
+
+        .main-container {
+            width: 96%;
+            min-height: 94vh; /* 使用 min-height */
+            display: flex;
+            gap: 24px;
+            padding: 24px;
+            box-sizing: border-box;
+            max-width: 1800px;
+        }
+
+        /* 响应式调整：屏幕较小时换行 */
+        @media (max-width: 1024px) {
+            .main-container {
+                flex-direction: column;
+                height: auto;
+            }
+            .chart-section {
+                height: 600px;
+            }
+        }
+
+        /* 左侧图表区域 */
+        .chart-section {
+            flex: 2.2;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding: 20px;
+        }
+
+        .chart-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            margin-left: 10px;
+            letter-spacing: -0.3px;
+        }
+
+        .canvas-wrapper {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 500px; /* 保证图表有最小高度 */
+        }
+
+        /* 右侧排名区域 */
+        .rankings-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 380px;
+        }
+
+        .category-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .group-header {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-left: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .group-header::before {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        /* 颜色标识 */
+        .header-ability::before { background-color: #0066CC; }
+        .header-experience::before { background-color: #FF3B30; }
+
+        .cards-row {
+            display: flex;
+            gap: 16px;
+            flex: 1;
+        }
+
+        .ranking-card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: transform 0.2s ease;
+            background: #ffffff; /* 纯白背景增加对比度 */
+        }
+        
+        .card-header {
+            padding: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            background: rgba(245, 245, 247, 0.8);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            color: var(--text-primary);
+        }
+
+        .card-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+            height: 300px; /* 给列表固定一个大概的高度，避免无限伸展 */
+        }
+
+        /* 列表样式 */
+        .ranking-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .ranking-item {
+            padding: 6px 12px;
+            margin: 2px 8px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-primary);
+            transition: background 0.1s ease;
+            cursor: default;
+        }
+
+        /* 悬停联动特效 */
+        .ranking-item:hover, .ranking-item.is-active {
+            background: #f0f2f5;
+            font-weight: 600;
+        }
+
+        .rank-badge {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.05);
+            color: var(--text-secondary);
+            font-size: 10px;
+            margin-right: 8px;
+            font-weight: 500;
+        }
+
+        .ranking-item:nth-child(1) .rank-badge { background: #FFD700; color: #fff; }
+        .ranking-item:nth-child(2) .rank-badge { background: #C0C0C0; color: #fff; }
+        .ranking-item:nth-child(3) .rank-badge { background: #CD7F32; color: #fff; }
+
+        .item-score {
+            font-family: "SF Mono", monospace;
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        /* 悬浮添加按钮 */
+        .fab-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(0, 102, 204, 0.6); /* 半透明商务蓝 */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 16px rgba(0, 102, 204, 0.25);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            font-weight: 300;
+            line-height: 1;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 100;
+        }
+
+        .fab-btn:hover {
+            transform: scale(1.1) rotate(90deg);
+            background: rgba(0, 102, 204, 0.85);
+            box-shadow: 0 8px 24px rgba(0, 102, 204, 0.4);
+        }
+
+        .fab-btn:active {
+            transform: scale(0.95) rotate(90deg);
+        }
+
+        /* 模态框样式 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-container {
+            background: white;
+            width: 400px;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-overlay.show .modal-container {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--active-color);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-cancel {
+            background: #f0f0f5;
+            color: var(--text-secondary);
+        }
+
+        .btn-confirm {
+            background: var(--active-color);
+            color: white;
+        }
+
+        /* 滚动条美化 */
+        .card-body::-webkit-scrollbar { width: 4px; }
+        .card-body::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.1); border-radius: 4px; }
+        .card-body::-webkit-scrollbar-track { background: transparent; }
+
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- 左侧：图表 -->
+        <div class="chart-section glass-panel">
+            <div class="chart-title">竞品调研矩阵</div>
+            <div class="canvas-wrapper">
+                <canvas id="competitorChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 右侧：排名 -->
+        <div class="rankings-section">
+            <div class="category-group">
+                <div class="group-header header-ability">产品能力细分</div>
+                <div class="cards-row">
+                    <div class="ranking-card glass-panel">
+                        <div class="card-header">链路完整性</div>
+                        <div class="card-body"><ul class="ranking-list" id="list-link"></ul></div>
+                    </div>
+                    <div class="ranking-card glass-panel">
+                        <div class="card-header">调整丰富度</div>
+                        <div class="card-body"><ul class="ranking-list" id="list-adjust"></ul></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="category-group">
+                <div class="group-header header-experience">用户体验细分</div>
+                <div class="cards-row">
+                    <div class="ranking-card glass-panel">
+                        <div class="card-header">交互体验</div>
+                        <div class="card-body"><ul class="ranking-list" id="list-interact"></ul></div>
+                    </div>
+                    <div class="ranking-card glass-panel">
+                        <div class="card-header">生成效果</div>
+                        <div class="card-body"><ul class="ranking-list" id="list-content"></ul></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 悬浮添加按钮 -->
+    <button class="fab-btn" onclick="openModal()" title="添加新竞品">+</button>
+
+    <!-- 添加竞品模态框 -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal-container">
+            <div class="modal-title">添加竞品数据</div>
+            <form id="addForm" onsubmit="handleAdd(event)">
+                <div class="form-group full-width">
+                    <label class="form-label">竞品名称</label>
+                    <input type="text" class="form-input" name="name" required placeholder="例如：ChatGPT">
+                </div>
+                
+                <div style="border-bottom: 1px solid #eee; margin: 10px 0 15px; padding-bottom: 5px; font-size: 12px; color: #999; font-weight: bold;">主维度得分 (%)</div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" style="color: #0066CC;">产品能力</label>
+                        <input type="number" class="form-input" name="ability" min="0" max="100" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="color: #FF3B30;">用户体验</label>
+                        <input type="number" class="form-input" name="experience" min="0" max="100" step="0.1" required>
+                    </div>
+                </div>
+
+                <div style="border-bottom: 1px solid #eee; margin: 10px 0 15px; padding-bottom: 5px; font-size: 12px; color: #999; font-weight: bold;">细分指标得分 (%)</div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">链路完整性</label>
+                        <input type="number" class="form-input" name="link" min="0" max="100" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">调整丰富度</label>
+                        <input type="number" class="form-input" name="adjust" min="0" max="100" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">交互体验</label>
+                        <input type="number" class="form-input" name="interact" min="0" max="100" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">生成效果</label>
+                        <input type="number" class="form-input" name="content" min="0" max="100" step="0.1" required>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn btn-confirm">确认添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        Chart.register(ChartDataLabels);
+
+        // 数据源
+        const products = [
+            { name: 'Gamma', ability: 90.00, experience: 71.92, link: 100, adjust: 88.75, interact: 100, content: 59.44 },
+            { name: 'Anygen', ability: 88.89, experience: 63.08, link: 100, adjust: 87.50, interact: 90, content: 51.11 },
+            { name: 'Dokie', ability: 80.00, experience: 83.85, link: 100, adjust: 77.50, interact: 80, content: 85.56 },
+            { name: 'iSlide', ability: 57.78, experience: 52.31, link: 60, adjust: 57.50, interact: 40, content: 57.78 },
+            { name: 'Gemini', ability: 77.78, experience: 74.37, link: 80, adjust: 77.50, interact: 70, content: 76.31 },
+            { name: 'IMA', ability: 40.00, experience: 65.65, link: 20, adjust: 42.50, interact: 30, content: 81.49 },
+            { name: 'Kimi', ability: 85.56, experience: 85.38, link: 100, adjust: 83.75, interact: 75, content: 90.00 },
+            { name: 'Manus', ability: 91.11, experience: 74.35, link: 100, adjust: 90.00, interact: 70, content: 76.29 },
+            { name: 'MiniMax', ability: 35.56, experience: 57.43, link: 40, adjust: 35.00, interact: 30, content: 69.62 },
+            { name: 'Lovart', ability: 64.44, experience: 80.52, link: 40, adjust: 67.50, interact: 75, content: 82.98 },
+            { name: 'Z.ai', ability: 82.22, experience: 74.35, link: 80, adjust: 82.50, interact: 66.65, content: 77.78 },
+            { name: 'NotebookLM', ability: 42.22, experience: 79.23, link: 20, adjust: 45.00, interact: 35, content: 98.89 },
+            { name: 'WPS AI PPT', ability: 84.44, experience: 68.71, link: 100, adjust: 82.50, interact: 80, content: 63.69 },
+            { name: '豆包', ability: 71.84, experience: 81.03, link: 80, adjust: 70.83, interact: 80, content: 81.49 },
+            { name: '百度文库', ability: 66.67, experience: 75.54, link: 60, adjust: 67.50, interact: 80, content: 73.56 },
+            { name: '秘塔', ability: 63.33, experience: 64.88, link: 80, adjust: 61.25, interact: 50, content: 71.49 },
+            { name: '天工', ability: 80.00, experience: 89.23, link: 80, adjust: 80.00, interact: 70, content: 97.78 }
+        ];
+
+        // 插件：绘制自定义十字坐标轴 (x=65, y=70)
+        const crossAxisPlugin = {
+            id: 'crossAxis',
+            beforeDraw: (chart) => {
+                const { ctx, chartArea: { top, bottom, left, right }, scales: { x, y } } = chart;
+                
+                const xVal = 65;
+                const yVal = 70;
+                
+                // 坐标转换
+                const xPixel = x.getPixelForValue(xVal);
+                const yPixel = y.getPixelForValue(yVal);
+
+                // 绘制象限标签
+                ctx.save();
+                ctx.font = 'bold 24px "SF Pro Text"';
+                ctx.textBaseline = 'middle';
+                
+                // 第一象限：六边形战士 (右上)
+                ctx.fillStyle = 'rgba(0, 102, 204, 0.1)'; // 非常浅的背景字
+                ctx.textAlign = 'center';
+                // 计算每个象限的中心位置
+                const q1x = xPixel + (right - xPixel) / 2;
+                const q1y = top + (yPixel - top) / 2;
+                ctx.fillText('六边形战士', q1x, q1y);
+                
+                // 第二象限：体验新秀 (左上)
+                const q2x = left + (xPixel - left) / 2;
+                const q2y = top + (yPixel - top) / 2;
+                ctx.fillText('体验新秀', q2x, q2y);
+                
+                // 第三象限：NPC (左下)
+                const q3x = left + (xPixel - left) / 2;
+                const q3y = yPixel + (bottom - yPixel) / 2;
+                ctx.fillText('NPC', q3x, q3y);
+
+                // 第四象限：能力专家 (右下)
+                const q4x = xPixel + (right - xPixel) / 2;
+                const q4y = yPixel + (bottom - yPixel) / 2;
+                ctx.fillText('能力专家', q4x, q4y);
+
+                ctx.restore();
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)'; // 深灰色轴线
+                ctx.setLineDash([6, 4]); // 虚线风格
+
+                // 纵轴 (在 x=65 处)
+                if (xPixel >= left && xPixel <= right) {
+                    ctx.moveTo(xPixel, top);
+                    ctx.lineTo(xPixel, bottom);
+                }
+
+                // 横轴 (在 y=70 处)
+                if (yPixel >= top && yPixel <= bottom) {
+                    ctx.moveTo(left, yPixel);
+                    ctx.lineTo(right, yPixel);
+                }
+                
+                ctx.stroke();
+
+                // 绘制箭头
+                ctx.beginPath();
+                ctx.setLineDash([]); // 重置为实线
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'; // 箭头颜色与轴线一致
+
+                // 纵轴箭头 (向上)
+                if (xPixel >= left && xPixel <= right) {
+                    ctx.moveTo(xPixel, top - 2); // 稍微出头一点点
+                    ctx.lineTo(xPixel - 6, top + 10);
+                    ctx.lineTo(xPixel + 6, top + 10);
+                    ctx.fill();
+                }
+
+                // 横轴箭头 (向右)
+                if (yPixel >= top && yPixel <= bottom) {
+                    ctx.moveTo(right + 2, yPixel);
+                    ctx.lineTo(right - 10, yPixel - 6);
+                    ctx.lineTo(right - 10, yPixel + 6);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        };
+
+        const ctx = document.getElementById('competitorChart').getContext('2d');
+        
+        const myChart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: '竞品',
+                    data: products.map(p => ({ 
+                        x: p.ability, 
+                        y: p.experience, 
+                        product: p.name,
+                        details: p // 存储详细信息供 tooltip 使用
+                    })),
+                    backgroundColor: 'rgba(0, 102, 204, 0.7)', // 商务蓝
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    pointRadius: 22,
+                    pointHoverRadius: 28, // Hover 放大
+                    pointHoverBackgroundColor: '#0052a3',
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 4,
+                    shadowBlur: 10,
+                    shadowColor: 'rgba(0, 0, 0, 0.2)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: 10 },
+                onHover: (event, elements) => {
+                    // 图表 -> 列表 联动
+                    document.querySelectorAll('.ranking-item').forEach(el => el.classList.remove('is-active'));
+                    
+                    if (elements && elements.length > 0) {
+                        const index = elements[0].index;
+                        const productName = products[index].name;
+                        
+                        // 找到所有列表中的对应项并高亮
+                        const listItems = document.querySelectorAll(`[data-product="${productName}"]`);
+                        listItems.forEach(item => {
+                            item.classList.add('is-active');
+                            item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        });
+                        
+                        // 设置鼠标样式
+                        event.native.target.style.cursor = 'pointer';
+                    } else {
+                        event.native.target.style.cursor = 'default';
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { 
+                        enabled: true, // 启用 Tooltip
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#1d1d1f',
+                        bodyColor: '#1d1d1f',
+                        borderColor: 'rgba(0,0,0,0.1)',
+                        borderWidth: 1,
+                        padding: 12,
+                        cornerRadius: 8,
+                        caretPadding: 25, // 让面板远离圆点，避免遮挡
+                        titleFont: { size: 14, weight: 'bold', family: 'SF Pro Text' },
+                        bodyFont: { size: 12, family: 'SF Mono' },
+                        displayColors: false,
+                        callbacks: {
+                            title: (items) => items[0].raw.product,
+                            label: (context) => {
+                                const p = context.raw.details;
+                                return [
+                                    `[主维度]`,
+                                    `产品能力: ${p.ability.toFixed(1)}%`,
+                                    `用户体验: ${p.experience.toFixed(1)}%`,
+                                    `────────────────`,
+                                    `[子维度]`,
+                                    `链路完整: ${p.link}%`,
+                                    `调整丰富: ${p.adjust}%`,
+                                    `交互体验: ${p.interact}%`,
+                                    `生成效果: ${p.content}%`
+                                ];
+                            }
+                        }
+                    },
+                    datalabels: {
+                        color: 'white',
+                        font: { weight: '600', size: 11, family: 'SF Pro Text' },
+                        formatter: (v, ctx) => ctx.dataset.data[ctx.dataIndex].product,
+                        textShadowBlur: 4,
+                        textShadowColor: 'rgba(0,0,0,0.5)'
+                    }
+                },
+                scales: {
+                    x: {
+                        min: 30, max: 100,
+                        grid: { 
+                            display: true, // 显示网格
+                            color: 'rgba(0, 0, 0, 0.05)', // 浅色
+                            borderDash: [5, 5] // 虚线
+                        }, 
+                        border: { display: false }, 
+                        ticks: { color: '#666', font: { family: 'SF Mono' } },
+                        title: { display: true, text: '产品能力得分率 (%) →', align: 'end', color: '#333', font: { weight: 'bold' } }
+                    },
+                    y: {
+                        min: 40, max: 100,
+                        grid: { 
+                            display: true, // 显示网格
+                            color: 'rgba(0, 0, 0, 0.05)', // 浅色
+                            borderDash: [5, 5] // 虚线
+                        },
+                        border: { display: false },
+                        ticks: { color: '#666', font: { family: 'SF Mono' } },
+                        title: { display: true, text: '用户体验得分率 (%) ↑', align: 'end', color: '#333', font: { weight: 'bold' } }
+                    }
+                }
+            },
+            plugins: [crossAxisPlugin]
+        });
+
+        // 渲染列表函数
+        function renderRanking(listId, key) {
+            const listEl = document.getElementById(listId);
+            const sorted = [...products].sort((a, b) => b[key] - a[key]);
+            
+            sorted.forEach((p, index) => {
+                const li = document.createElement('li');
+                li.className = 'ranking-item';
+                li.setAttribute('data-product', p.name); // 用于联动查找
+                
+                li.innerHTML = `
+                    <div style="display:flex; align-items:center;">
+                        <span class="rank-badge">${index + 1}</span>
+                        <span>${p.name}</span>
+                    </div>
+                    <span class="item-score">${p[key].toFixed(1)}</span>
+                `;
+
+                // 列表 -> 图表 联动事件
+                li.addEventListener('mouseenter', () => {
+                    // 1. 高亮自己
+                    li.classList.add('is-active');
+                    
+                    // 2. 在图表中找到对应点的索引
+                    const dataIndex = products.findIndex(prod => prod.name === p.name);
+                    
+                    if (dataIndex !== -1) {
+                        // 3. 触发 Chart.js 的 active 状态
+                        const meta = myChart.getDatasetMeta(0);
+                        const point = meta.data[dataIndex];
+                        
+                        myChart.setActiveElements([{ datasetIndex: 0, index: dataIndex }]);
+                        myChart.tooltip.setActiveElements([{ datasetIndex: 0, index: dataIndex }]);
+                        myChart.update();
+                    }
+                });
+
+                li.addEventListener('mouseleave', () => {
+                    li.classList.remove('is-active');
+                    myChart.setActiveElements([]); // 清除激活状态
+                    myChart.tooltip.setActiveElements([]);
+                    myChart.update();
+                });
+
+                listEl.appendChild(li);
+            });
+        }
+
+        renderRanking('list-link', 'link');
+        renderRanking('list-adjust', 'adjust');
+        renderRanking('list-interact', 'interact');
+        renderRanking('list-content', 'content');
+
+        // 模态框逻辑
+        const modal = document.getElementById('addModal');
+        const form = document.getElementById('addForm');
+
+        function openModal() {
+            modal.classList.add('show');
+            form.reset(); // 打开时重置表单
+        }
+
+        function closeModal() {
+            modal.classList.remove('show');
+        }
+
+        // 点击背景关闭
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        function handleAdd(e) {
+            e.preventDefault();
+            
+            // 获取表单数据
+            const formData = new FormData(form);
+            const newProduct = {
+                name: formData.get('name'),
+                ability: parseFloat(formData.get('ability')),
+                experience: parseFloat(formData.get('experience')),
+                link: parseFloat(formData.get('link')),
+                adjust: parseFloat(formData.get('adjust')),
+                interact: parseFloat(formData.get('interact')),
+                content: parseFloat(formData.get('content'))
+            };
+
+            // 1. 更新数据源
+            products.push(newProduct);
+
+            // 2. 更新图表数据
+            myChart.data.datasets[0].data = products.map(p => ({ 
+                x: p.ability, 
+                y: p.experience, 
+                product: p.name,
+                details: p 
+            }));
+            myChart.update();
+
+            // 3. 更新所有排名列表
+            ['list-link', 'list-adjust', 'list-interact', 'list-content'].forEach(id => {
+                document.getElementById(id).innerHTML = ''; // 清空
+            });
+            renderRanking('list-link', 'link');
+            renderRanking('list-adjust', 'adjust');
+            renderRanking('list-interact', 'interact');
+            renderRanking('list-content', 'content');
+
+            // 4. 关闭模态框并提示
+            closeModal();
+            // 可选：高亮新添加的产品
+            setTimeout(() => {
+                // 找到新产品的索引
+                const newIndex = products.length - 1;
+                // 触发图表高亮
+                myChart.setActiveElements([{ datasetIndex: 0, index: newIndex }]);
+                myChart.tooltip.setActiveElements([{ datasetIndex: 0, index: newIndex }]);
+                myChart.update();
+            }, 300);
+        }
+
+    </script>
+</body>
+</html>
