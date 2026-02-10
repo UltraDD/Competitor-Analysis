@@ -573,7 +573,7 @@
             { name: 'Canva', ability: 60.00, experience: 85.00, link: 60, adjust: 80, interact: 90, content: 70, origin: 'startup', type: 'template', url: 'https://365.kdocs.cn/l/ccbHJYULcPPb' }, // 补充
             { name: 'Tosea.ai', ability: 83.33, experience: 78.46, link: 100.00, adjust: 81.25, interact: 75.00, content: 80.00, origin: 'startup', type: 'html', url: '' },
             { name: 'MSO Copilot', ability: 73.33, experience: 55.38, link: 100.00, adjust: 70.00, interact: 75.00, content: 46.67, origin: 'office', type: 'template', url: '' },
-            { name: 'Ai PPT', ability: 95.56, experience: 68.46, link: 100.00, adjust: 95.00, interact: 85.00, content: 61.11, origin: 'startup', type: 'template', url: '' }
+            { name: 'AIPPT.cn', ability: 95.56, experience: 68.46, link: 100.00, adjust: 95.00, interact: 85.00, content: 61.11, origin: 'startup', type: 'template', url: '' }
         ];
 
         // 颜色配置 (低饱和度莫兰迪色系)
@@ -780,10 +780,10 @@
                 ctx.textBaseline = 'bottom';
                 ctx.fillText('用户体验 (得分率，%)', xPixel, top - 8);
 
-                // 绘制 X 轴标题 (横轴右端下方)
+                // 绘制 X 轴标题 (横轴右端上方)
                 ctx.textAlign = 'right';
-                ctx.textBaseline = 'top';
-                ctx.fillText('产品能力 (得分率，%)', right, yPixel + 10);
+                ctx.textBaseline = 'bottom';
+                ctx.fillText('产品能力 (得分率，%)', right, yPixel - 10);
 
                 ctx.restore();
             }
