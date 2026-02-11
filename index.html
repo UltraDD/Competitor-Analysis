@@ -569,7 +569,7 @@
             { name: '百度文库', ability: 66.67, experience: 75.54, link: 60, adjust: 67.50, interact: 80, content: 73.56, origin: 'model', type: 'template', url: 'https://365.kdocs.cn/l/crJobNiCJyGz' },
             { name: '秘塔', ability: 63.33, experience: 64.88, link: 80, adjust: 61.25, interact: 50, content: 71.49, origin: 'startup', type: 'html', url: 'https://365.kdocs.cn/l/crOwiX2cip7l' },
             { name: '天工', ability: 80.00, experience: 89.23, link: 80, adjust: 80.00, interact: 70, content: 97.78, origin: 'model', type: 'image', url: 'https://365.kdocs.cn/l/coVdO48rLPzm' },
-            { name: 'Claude in PPT', ability: 86.67, experience: 75.38, link: 80.00, adjust: 87.50, interact: 73.33, content: 77.04, origin: 'model', type: 'html', url: '' }, 
+            { name: 'Claude in PPT', ability: 86.67, experience: 75.38, link: 80.00, adjust: 87.50, interact: 73.33, content: 77.04, origin: 'model', type: 'js_xml', url: '' }, 
             { name: 'Canva', ability: 60.00, experience: 85.00, link: 60, adjust: 80, interact: 90, content: 70, origin: 'startup', type: 'template', url: 'https://365.kdocs.cn/l/ccbHJYULcPPb' }, // 补充
             { name: 'Tosea.ai', ability: 83.33, experience: 78.46, link: 100.00, adjust: 81.25, interact: 75.00, content: 80.00, origin: 'startup', type: 'html', url: '' },
             { name: 'MSO Copilot', ability: 73.33, experience: 55.38, link: 100.00, adjust: 70.00, interact: 75.00, content: 46.67, origin: 'office', type: 'template', url: '' },
@@ -590,13 +590,13 @@
                 html: '#FF9AA2',     // 珊瑚粉 (Html生成)
                 image: '#6EB5FF',    // 天空蓝 (图片生成)
                 template: '#B589D6', // 紫罗兰 (模板生成)
-                // xml: '#FFB7B2'       // 浅红 (控制XML) - 已移除
+                js_xml: '#FFB7B2'    // 浅红 (JS to XML)
             }
         };
 
         const labels = {
             origin: { model: '模型厂商', office: '办公巨头', startup: 'AI 创业者' },
-            type: { html: 'Html 生成', image: '图片生成', template: '模板生成' }
+            type: { html: 'Html 生成', image: '图片生成', template: '模板生成', js_xml: 'JS to XML' }
         };
 
         let currentTab = 'default';
